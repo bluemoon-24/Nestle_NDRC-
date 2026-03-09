@@ -1,0 +1,13 @@
+{
+  "name": "nestle-ndrc-last-mile",
+  "version": "1.0.0",
+  "description": "Supply Chain Last Mile Visibility System for Nestle",
+  "main": "index.php",
+  "scripts": {
+    "dev": "tailwindcss -i ./src/input.css -o ./public/assets/css/app.css --watch",
+    "build": "tailwindcss -i ./src/input.css -o ./public/assets/css/app.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  }
+}
