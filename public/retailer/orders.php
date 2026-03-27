@@ -23,7 +23,7 @@ include '../includes/header.php';
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="mb-8">
-        <a href="/retailer/dashboard.php" class="text-sm font-semibold text-nestle-blue mb-2 inline-block">← Back to Dashboard</a>
+        <a href="<?php echo BASE_URL; ?>retailer/dashboard.php" class="text-sm font-semibold text-nestle-blue mb-2 inline-block">← Back to Dashboard</a>
         <h2 class="text-2xl font-bold text-gray-900 sm:text-3xl">Order History</h2>
         <p class="mt-1 text-sm text-gray-500">Track and manage all your past and active orders</p>
     </div>

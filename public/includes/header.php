@@ -2,11 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NDRC Platform - Nestlé</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#63513D">
+    
+    <!-- PWA & Mobile Optimization -->
+    <link rel="manifest" href="<?php echo BASE_URL; ?>manifest.json">
+    <meta name="theme-color" content="#002B5C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="<?php echo BASE_URL; ?>assets/images/icon-192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -24,72 +31,116 @@
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
+    
+    <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('<?php echo BASE_URL; ?>sw.js')
+                    .then(reg => console.log('NDRC Service Worker registered'))
+                    .catch(err => console.log('Registration failed:', err));
+            });
+        }
+    </script>
 </head>
-<body class="bg-nestle-bg min-h-screen">
+<body class="bg-nestle-bg min-h-screen" x-data="{ mobileMenu: false }">
+
 <?php if (isset($_SESSION['user_id'])): ?>
-    <!-- App Navigation -->
-    <nav class="bg-nestle-brown text-white shadow-lg sticky top-0 z-50">
+    <!-- Premium App Navigation -->
+    <nav class="bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
+            <div class="flex justify-between h-20">
                 <div class="flex items-center">
-                    <a href="/" class="flex-shrink-0 flex items-center">
-                        <img class="h-10 w-auto" src="/assets/images/logo.png" alt="Nestlé NDRC">
-                        <span class="ml-2 text-2xl font-bold tracking-tighter hidden sm:block">NESTLÉ <span class="text-nestle-blue font-light">NDRC</span></span>
+                    <a href="<?php echo BASE_URL; ?>" class="flex-shrink-0 flex items-center">
+                        <img class="h-10 w-auto" src="<?php echo BASE_URL; ?>assets/images/logo.svg" alt="Icon">
+                        <span class="ml-3 text-xl font-black tracking-tighter text-gray-900">NESTLÉ <span class="text-nestle-blue font-black">NDRC</span></span>
                     </a>
                     
-                    <!-- Role-Based Nav Links -->
-                    <div class="hidden md:ml-10 md:flex md:space-x-8">
-                        <?php if ($_SESSION['user_role'] === 'nestle'): ?>
-                            <a href="/nestle/dashboard.php" class="text-white hover:text-nestle-blue px-3 py-2 text-sm font-medium">Command Center</a>
-                            <a href="/nestle/warehouse.php" class="text-white hover:text-nestle-blue px-3 py-2 text-sm font-medium">Warehouse</a>
-                            <a href="/nestle/analytics.php" class="text-white hover:text-nestle-blue px-3 py-2 text-sm font-medium">Analytics</a>
-                        <?php elseif ($_SESSION['user_role'] === 'retailer'): ?>
-                            <a href="/retailer/dashboard.php" class="text-white hover:text-nestle-blue px-3 py-2 text-sm font-medium">Dashboard</a>
-                            <a href="/retailer/place-order.php" class="text-white hover:text-nestle-blue px-3 py-2 text-sm font-medium">New Order</a>
-                            <a href="/retailer/orders.php" class="text-white hover:text-nestle-blue px-3 py-2 text-sm font-medium">History</a>
-                        <?php elseif ($_SESSION['user_role'] === 'wholesaler'): ?>
-                            <a href="/wholesaler/dashboard.php" class="text-white hover:text-nestle-blue px-3 py-2 text-sm font-medium">Incoming Orders</a>
-                            <a href="/wholesaler/retailers.php" class="text-white hover:text-nestle-blue px-3 py-2 text-sm font-medium">Retailer Network</a>
-                        <?php elseif ($_SESSION['user_role'] === 'distributor'): ?>
-                            <a href="/distributor/dashboard.php" class="text-white hover:text-nestle-blue px-3 py-2 text-sm font-medium">Pending Confirmations</a>
-                        <?php endif; ?>
+                    <!-- Desktop Nav -->
+                    <div class="hidden md:ml-10 md:flex md:space-x-4">
+                        <?php 
+                        $roleLinks = [
+                            'nestle' => [
+                                ['label' => 'Command Center', 'url' => 'nestle/dashboard.php'],
+                                ['label' => 'Warehouse', 'url' => 'nestle/warehouse.php'],
+                                ['label' => 'Analytics', 'url' => 'nestle/analytics.php']
+                            ],
+                            'retailer' => [
+                                ['label' => 'Dashboard', 'url' => 'retailer/dashboard.php'],
+                                ['label' => 'New Order', 'url' => 'retailer/place-order.php'],
+                                ['label' => 'History', 'url' => 'retailer/orders.php']
+                            ],
+                            'wholesaler' => [
+                                ['label' => 'Incoming Orders', 'url' => 'wholesaler/dashboard.php'],
+                                ['label' => 'Retailer Network', 'url' => 'wholesaler/retailers.php']
+                            ],
+                            'distributor' => [
+                                ['label' => 'Confirmations', 'url' => 'distributor/dashboard.php']
+                            ]
+                        ];
+                        
+                        $links = $roleLinks[$_SESSION['user_role']] ?? [];
+                        foreach ($links as $link): ?>
+                            <a href="<?php echo BASE_URL . $link['url']; ?>" class="px-4 py-2 text-sm font-bold text-gray-600 hover:text-nestle-blue hover:bg-nestle-blue/5 rounded-xl transition-all">
+                                <?php echo $link['label']; ?>
+                            </a>
+                        <?php endforeach; ?>
                     </div>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <!-- Notification Bell -->
-                    <div class="relative">
-                        <button onclick="toggleNotifications()" class="p-2 rounded-full hover:bg-white/10 relative">
-                            <span>🔔</span>
-                            <span id="notifBadge" class="hidden absolute top-0 right-0 bg-nestle-danger text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">0</span>
-                        </button>
-                        <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl z-50 py-2 border border-gray-100">
-                            <div class="px-4 py-2 border-b border-gray-50 flex justify-between items-center">
-                                <h3 class="font-bold text-gray-800">Notifications</h3>
-                                <a href="/notifications.php?mark_all_read=1" class="text-xs text-nestle-blue hover:underline">Mark all as read</a>
-                            </div>
-                            <div id="notifContent" class="max-h-96 overflow-y-auto">
-                                <p class="text-center py-4 text-gray-500 text-sm">No new notifications</p>
-                            </div>
-                            <div class="px-4 py-2 border-t border-gray-50 text-center">
-                                <a href="/notifications.php" class="text-xs font-bold text-nestle-blue hover:underline">View All Notifications</a>
-                            </div>
+
+                <div class="flex items-center space-x-3">
+                    <!-- Notifications (Hidden on small mobile) -->
+                    <button class="p-2.5 rounded-2xl bg-gray-50 text-gray-400 hover:bg-nestle-blue/5 hover:text-nestle-blue transition-all hidden sm:block">
+                        <span class="text-xl">🔔</span>
+                    </button>
+
+                    <!-- User Meta -->
+                    <div class="flex items-center gap-3 pl-3 border-l border-gray-100">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-xs font-black text-gray-900 leading-none"><?php echo h($_SESSION['user_name']); ?></p>
+                            <p class="text-[10px] font-bold text-nestle-blue uppercase tracking-widest mt-1 opacity-70"><?php echo $_SESSION['user_role']; ?></p>
+                        </div>
+                        <div class="h-10 w-10 bg-nestle-blue rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-nestle-blue/20">
+                            <?php echo strtoupper(substr($_SESSION['user_name'], 0, 1)); ?>
                         </div>
                     </div>
 
-                    <!-- User Menu -->
-                    <div class="flex items-center space-x-2">
-                        <span class="hidden md:block text-sm font-medium"><?php echo h($_SESSION['user_name']); ?></span>
-                        <div class="h-8 w-8 bg-nestle-blue rounded-full flex items-center justify-center font-bold">
-                            <?php echo strtoupper(substr($_SESSION['user_name'], 0, 1)); ?>
-                        </div>
-                        <a href="/api/auth/logout.php" class="text-sm bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg">Logout</a>
-                    </div>
+                    <!-- Mobile Menu Button -->
+                    <button @click="mobileMenu = !mobileMenu" class="md:hidden p-2.5 rounded-2xl bg-gray-100 text-gray-800 transition-all">
+                        <svg x-show="!mobileMenu" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                        <svg x-show="mobileMenu" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+
+                    <a href="<?php echo BASE_URL; ?>api/auth/logout.php" class="hidden md:flex bg-gray-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black hover:bg-nestle-brown transition-all items-center gap-2">
+                        Logout
+                    </a>
                 </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Panel -->
+        <div x-show="mobileMenu" 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-4"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="md:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 shadow-2xl z-40 p-6 space-y-4">
+            <?php foreach ($links as $link): ?>
+                <a href="<?php echo BASE_URL . $link['url']; ?>" class="block px-6 py-4 bg-gray-50 rounded-2xl text-sm font-black text-gray-700 hover:bg-nestle-blue/10 hover:text-nestle-blue transition-all">
+                    <?php echo $link['label']; ?>
+                </a>
+            <?php endforeach; ?>
+            <div class="pt-4 border-t border-gray-100">
+                <a href="<?php echo BASE_URL; ?>api/auth/logout.php" class="flex items-center justify-center gap-2 w-full bg-red-50 text-red-600 px-6 py-4 rounded-2xl text-sm font-black">
+                    Sign Out
+                </a>
             </div>
         </div>
     </nav>
 <?php endif; ?>
-<main>
+
+<main class="relative">

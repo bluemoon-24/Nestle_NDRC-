@@ -6,8 +6,30 @@ require_once '../../includes/functions.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
     $retailer_id = $_SESSION['user_id'];
-    $wholesaler_id = !empty($_POST['wholesaler_id']) ? $_POST['wholesaler_id'] : null;
-    $distributor_id = $_POST['distributor_id'];
+    
+    // Fetch affiliated distributor and wholesaler from profile to ensure order routing
+    $stmt = $pdo->prepare("SELECT wholesaler_id, distributor_id FROM users WHERE id = ?");
+    $stmt->execute([$retailer_id]);
+    $userProf = $stmt->fetch();
+    
+    $wholesaler_id = $userProf['wholesaler_id'] ?? (!empty($_POST['wholesaler_id']) ? $_POST['wholesaler_id'] : null);
+    $distributor_id = $userProf['distributor_id'] ?? $_POST['distributor_id'];
+    
+    // If a wholesaler is involved, the order MUST go to THAT wholesaler's affiliated distributor
+    if ($wholesaler_id) {
+        $stmt_w = $pdo->prepare("SELECT distributor_id FROM users WHERE id = ?");
+        $stmt_w->execute([$wholesaler_id]);
+        $wProf = $stmt_w->fetch();
+        if ($wProf && $wProf['distributor_id']) {
+            $distributor_id = $wProf['distributor_id'];
+        }
+    }
+    
+    // Safety check: if still no distributor, fail with error
+    if (!$distributor_id) {
+        die("Order failed: No affiliated distributor found for your account. Please update your profile or contact support.");
+    }
+    
     $notes = $_POST['notes'] ?? '';
     $items = $_POST['items'] ?? [];
 
@@ -30,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
     }
 
     if (empty($order_items)) {
-        header('Location: /retailer/place-order.php?error=empty');
+        header('Location: ' . BASE_URL . 'retailer/place-order.php?error=empty');
         exit();
     }
 
@@ -69,13 +91,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
 
         // Notification
         if ($wholesaler_id) {
-            createNotification($wholesaler_id, 'order_status', 'New Retailer Order', "Order $order_number received from " . $_SESSION['user_name'], "/wholesaler/orders.php");
+            createNotification($wholesaler_id, 'order_status', 'New Retailer Order', "Order $order_number received from " . $_SESSION['user_name'], BASE_URL . "wholesaler/orders.php");
         } else {
-            createNotification($distributor_id, 'order_status', 'New Direct Order', "Order $order_number received from " . $_SESSION['user_name'], "/distributor/orders.php");
+            createNotification($distributor_id, 'order_status', 'New Direct Order', "Order $order_number received from " . $_SESSION['user_name'], BASE_URL . "distributor/orders.php");
         }
 
         $pdo->commit();
-        header('Location: /retailer/dashboard.php?success=1');
+        header('Location: ' . BASE_URL . 'retailer/dashboard.php?success=1');
         exit();
 
     } catch (Exception $e) {

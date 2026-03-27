@@ -4,6 +4,10 @@ $dbname = 'ndrc_nestle';
 $username = 'root';
 $password = '';
 
+// Define Base URL for absolute links
+// If your project is in htdocs/Nestle_NDRC-, then use '/Nestle_NDRC-/'
+define('BASE_URL', '/Nestle_NDRC-/');
+
 try {
     $pdo = new PDO(
         "mysql:host=$host;dbname=$dbname;charset=utf8mb4",

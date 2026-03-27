@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <!-- Nestle Blue and Brown Style - Icon Only -->
+  <rect x="10" y="10" width="10" height="60" rx="4" fill="#63513D" />
+  <rect x="50" y="10" width="10" height="60" rx="4" fill="#63513D" />
+  <path d="M 15 15 L 55 65" stroke="#63513D" stroke-width="12" stroke-linecap="round" />
+  
+  <!-- Blue Connector Dot - Suggests Logistics & Connection -->
+  <circle cx="55" cy="15" r="8" fill="#0085C3" />
+</svg>

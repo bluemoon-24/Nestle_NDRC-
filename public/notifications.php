@@ -11,7 +11,7 @@ $user_id = $_SESSION['user_id'];
 if (isset($_GET['mark_all_read'])) {
     $stmt = $pdo->prepare("UPDATE notifications SET read_status = 1 WHERE user_id = ?");
     $stmt->execute([$user_id]);
-    header('Location: /notifications.php');
+    header('Location: ' . BASE_URL . 'notifications.php');
     exit();
 }
 

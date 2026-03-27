@@ -25,13 +25,13 @@ include '../includes/header.php';
             <p class="text-sm text-gray-500 mt-1">Real-time order aggregation and visibility</p>
         </div>
         <div class="mt-4 flex md:ml-4 md:mt-0 space-x-3">
-            <a href="/api/nestle/export-report.php" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+            <a href="<?php echo BASE_URL; ?>api/nestle/export-report.php" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                 📥 Export Report
             </a>
             <button type="button" onclick="updateAggregation()" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                 Refresh Map
             </button>
-            <a href="/nestle/warehouse.php" class="inline-flex items-center rounded-md bg-nestle-brown px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-nestle-brown/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nestle-brown">
+            <a href="<?php echo BASE_URL; ?>nestle/warehouse.php" class="inline-flex items-center rounded-md bg-nestle-brown px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-nestle-brown/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nestle-brown">
                 Manage Stock
             </a>
         </div>
@@ -129,7 +129,7 @@ include '../includes/header.php';
 
 <script>
 function updateAggregation() {
-    fetch('/api/nestle/aggregation.php')
+    fetch('<?php echo BASE_URL; ?>api/nestle/aggregation.php')
         .then(r => r.json())
         .then(data => {
             document.getElementById('totalOrders').textContent = data.summary.total;
@@ -144,18 +144,28 @@ function updateAggregation() {
                 for (let dId in data.distributors) {
                     let d = data.distributors[dId];
                     html += `
-                        <div class="border rounded-xl overflow-hidden">
+                        <div class="border rounded-xl overflow-hidden shadow-sm">
                             <div class="bg-gray-50 px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden')">
                                 <div class="flex items-center">
                                     <span class="text-lg mr-3">🏢</span>
                                     <div>
                                         <h4 class="font-bold text-gray-900">${d.name}</h4>
-                                        <p class="text-xs text-gray-500">${d.order_count} nested orders</p>
+                                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">NDRC Node</p>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <p class="font-bold text-nestle-brown">Rs ${parseFloat(d.total_value).toLocaleString()}</p>
-                                    <p class="text-[10px] text-nestle-blue uppercase font-bold tracking-widest">Confirmed</p>
+                                <div class="flex items-center space-x-6">
+                                    <div class="text-center">
+                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Incoming</p>
+                                        <p class="text-lg font-bold text-orange-600">${d.incoming_count}</p>
+                                    </div>
+                                    <div class="text-center border-l border-gray-200 pl-6">
+                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Outgoing</p>
+                                        <p class="text-lg font-bold text-green-600">${d.outgoing_count}</p>
+                                    </div>
+                                    <div class="text-right border-l border-gray-200 pl-6 min-w-[120px]">
+                                        <p class="font-bold text-nestle-brown text-lg">Rs ${parseFloat(d.total_value).toLocaleString()}</p>
+                                        <p class="text-[10px] text-nestle-blue uppercase font-bold tracking-widest">Confirmed Value</p>
+                                    </div>
                                 </div>
                             </div>
                             <div class="p-4 space-y-4 bg-white border-t border-gray-50">

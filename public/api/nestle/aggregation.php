@@ -27,15 +27,15 @@ $query = "
         w.name as wholesaler_name,
         r.id as retailer_id,
         r.name as retailer_name,
+        o.status,
         COUNT(o.id) as order_count,
         SUM(o.total_amount) as total_value
     FROM orders o
     JOIN users r ON o.retailer_id = r.id
     JOIN users d ON o.distributor_id = d.id
     LEFT JOIN users w ON o.wholesaler_id = w.id
-    WHERE o.status = 'distributor_confirmed'
-      AND DATE(o.order_date) = ?
-    GROUP BY d.id, w.id, r.id
+    WHERE DATE(o.order_date) = ?
+    GROUP BY d.id, w.id, r.id, o.status
     ORDER BY d.name, w.name, r.name
 ";
 
@@ -51,12 +51,21 @@ foreach ($rows as $row) {
             'name' => $row['distributor_name'],
             'total_value' => 0,
             'order_count' => 0,
+            'incoming_count' => 0,
+            'outgoing_count' => 0,
             'wholesalers' => [],
             'direct_retailers' => []
         ];
     }
     
-    $distributors[$row['distributor_id']]['total_value'] += $row['total_value'];
+    // Categorize by status
+    if ($row['status'] === 'distributor_pending') {
+        $distributors[$row['distributor_id']]['incoming_count'] += $row['order_count'];
+    } elseif (in_array($row['status'], ['distributor_confirmed', 'dispatched', 'delivered'])) {
+        $distributors[$row['distributor_id']]['outgoing_count'] += $row['order_count'];
+        $distributors[$row['distributor_id']]['total_value'] += $row['total_value'];
+    }
+    
     $distributors[$row['distributor_id']]['order_count'] += $row['order_count'];
     
     if ($row['wholesaler_id']) {

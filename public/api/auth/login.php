@@ -16,25 +16,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_role'] = $user['role'];
+        $_SESSION['wholesaler_id'] = $user['wholesaler_id'];
+        $_SESSION['distributor_id'] = $user['distributor_id'];
         
         // Role-based redirect
         switch ($user['role']) {
             case 'retailer':
-                header('Location: /retailer/dashboard.php');
+                header('Location: ' . BASE_URL . 'retailer/dashboard.php');
                 break;
             case 'wholesaler':
-                header('Location: /wholesaler/dashboard.php');
+                header('Location: ' . BASE_URL . 'wholesaler/dashboard.php');
                 break;
             case 'distributor':
-                header('Location: /distributor/dashboard.php');
+                header('Location: ' . BASE_URL . 'distributor/dashboard.php');
                 break;
             case 'nestle':
-                header('Location: /nestle/dashboard.php');
+                header('Location: ' . BASE_URL . 'nestle/dashboard.php');
                 break;
         }
         exit();
     } else {
-        header('Location: /login.php?error=1');
+        header('Location: ' . BASE_URL . 'login.php?error=1');
         exit();
     }
 }

@@ -55,7 +55,7 @@ include '../includes/header.php';
                 </div>
             </div>
             <div class="bg-gray-50 px-5 py-3 text-xs">
-                <a href="/wholesaler/orders.php?status=placed" class="font-bold text-nestle-blue hover:underline">Review All Orders →</a>
+                <a href="<?php echo BASE_URL; ?>wholesaler/orders.php?status=placed" class="font-bold text-nestle-blue hover:underline">Review All Orders →</a>
             </div>
         </div>
 
@@ -74,7 +74,7 @@ include '../includes/header.php';
                 </div>
             </div>
             <div class="bg-gray-50 px-5 py-3 text-xs">
-                <a href="/wholesaler/retailers.php" class="font-bold text-nestle-blue hover:underline">Manage Network →</a>
+                <a href="<?php echo BASE_URL; ?>wholesaler/retailers.php" class="font-bold text-nestle-blue hover:underline">Manage Network →</a>
             </div>
         </div>
 
@@ -130,13 +130,13 @@ include '../includes/header.php';
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
                                 <?php if ($o['status'] === 'placed'): ?>
-                                    <form action="/api/wholesaler/process-order.php" method="POST" class="inline">
+                                    <form action="<?php echo BASE_URL; ?>api/wholesaler/process-order.php" method="POST" class="inline">
                                         <input type="hidden" name="order_id" value="<?php echo $o['id']; ?>">
                                         <button type="submit" name="action" value="accept" class="text-green-600 font-bold hover:bg-green-50 px-2 py-1 rounded">Accept</button>
                                         <button type="submit" name="action" value="reject" class="text-red-600 font-bold hover:bg-red-50 px-2 py-1 rounded ml-2">Reject</button>
                                     </form>
                                 <?php elseif ($o['status'] === 'wholesaler_accepted'): ?>
-                                    <form action="/api/wholesaler/submit-to-distributor.php" method="POST" class="inline">
+                                    <form action="<?php echo BASE_URL; ?>api/wholesaler/submit-to-distributor.php" method="POST" class="inline">
                                         <input type="hidden" name="order_id" value="<?php echo $o['id']; ?>">
                                         <button type="submit" class="text-nestle-blue font-bold border border-nestle-blue/20 bg-nestle-blue/5 px-3 py-1.5 rounded-lg hover:bg-nestle-blue/10">Submit to Distributor</button>
                                     </form>

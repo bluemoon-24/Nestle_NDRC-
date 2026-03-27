@@ -13,16 +13,20 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     role ENUM('retailer', 'wholesaler', 'distributor', 'nestle') NOT NULL,
     phone VARCHAR(20),
+    address TEXT,
     region VARCHAR(100),
     territory VARCHAR(100),
     wholesaler_id INT DEFAULT NULL,
+    distributor_id INT DEFAULT NULL,
     order_direct TINYINT(1) DEFAULT 0,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (wholesaler_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (distributor_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_role (role),
-    INDEX idx_wholesaler (wholesaler_id)
+    INDEX idx_wholesaler (wholesaler_id),
+    INDEX idx_distributor_aff (distributor_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: products
@@ -107,28 +111,79 @@ CREATE TABLE notifications (
     INDEX idx_user_unread (user_id, read_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Table: network_requests
+CREATE TABLE network_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    retailer_id INT NOT NULL,
+    wholesaler_id INT NOT NULL,
+    status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+    message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (retailer_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (wholesaler_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_retailer_req (retailer_id),
+    INDEX idx_wholesaler_req (wholesaler_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: factory_orders
+CREATE TABLE factory_orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    distributor_id INT NOT NULL,
+    status ENUM('pending', 'accepted', 'dispatched', 'delivered', 'rejected') DEFAULT 'pending',
+    total_amount DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (distributor_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_dist_factory (distributor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: factory_order_items
+CREATE TABLE factory_order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    factory_order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (factory_order_id) REFERENCES factory_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- SEED DATA
 
 -- Insert Nestlé admin account (password: admin123)
+-- Hash generated for: admin123
 INSERT INTO users (name, email, password, role, status) VALUES
-('Nestlé Admin', 'admin@nestle.lk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'nestle', 'active');
+('Nestlé Admin', 'admin@nestle.lk', '$2y$10$bGrPvw8/NQ855l82NCC6JuFw6OO5GYpiA67Dmcgxm/HvIEfGf9pri', 'nestle', 'active');
 
--- Insert sample products
+-- Insert sample products (Distributor/Bulk Prices)
 INSERT INTO products (name, sku, category, unit, description, price) VALUES
-('MILO 1kg Refill Pack', 'MILO-1KG-001', 'Beverages', '1kg', 'MILO chocolate malt drink powder', 850.00),
-('NESCAFÉ Classic 500g', 'NESCAFE-500G-001', 'Beverages', '500g', 'Instant coffee', 1250.00),
-('MAGGI 2-Minute Noodles 8-Pack', 'MAGGI-8PK-001', 'Noodles', '8-pack', 'Instant noodles', 420.00),
-('Anchor Full Cream Milk Powder 400g', 'ANCHOR-400G-001', 'Dairy', '400g', 'Full cream milk powder', 680.00),
-('KitKat 4-Finger 10-Pack', 'KITKAT-10PK-001', 'Confectionery', '10-pack', 'Chocolate wafer', 550.00);
+-- Beverages
+('MILO 1kg Refill Pack (Distributor Pack)', 'MILO-1KG-D', 'Beverages', '1kg', 'MILO chocolate malt drink powder - 1kg bulk bag', 720.00),
+('NESCAFÉ Classic 500g (Distributor Pack)', 'NESCAFE-500G-D', 'Beverages', '500g', 'Instant coffee - 500g economy pack', 1050.00),
+('Milo Ready-to-Drink 200ml (Case of 24)', 'MILO-RTD-C24', 'Beverages', 'Case', '24 packs of 200ml Milo RTD', 1800.00),
+
+-- Noodles
+('MAGGI 2-Minute Noodles (Family Pack - 40pcs)', 'MAGGI-40PK', 'Noodles', 'Box', 'Bulk box of 40 individual 2-minute noodle packs', 1600.00),
+('MAGGI Curry Noodles 8-Pack (Value Pack)', 'MAGGI-8PK-V', 'Noodles', '8-pack', 'Value pack of 8 curry noodle packs', 350.00),
+
+-- Dairy
+('Milkmaid Sweetened Condensed Milk (Case of 12)', 'MILKMAID-C12', 'Dairy', 'Case', '12 cans of 390g sweetened condensed milk', 4200.00),
+('Nestlé Everyday Milk Powder 1kg', 'EVERYDAY-1KG', 'Dairy', '1kg', 'Full cream milk powder for tea/coffee', 1450.00),
+('Anchor Full Cream Milk Powder 400g (Bulk Buy)', 'ANCHOR-400G-B', 'Dairy', '400g', 'Full cream milk powder - 400g pack', 580.00),
+
+-- Confectionery
+('KitKat 4-Finger (Display Box - 24pcs)', 'KITKAT-BOX24', 'Confectionery', 'Box', 'Display box containing 24 KitKat 4-finger bars', 1100.00),
+('Nestlé Milkybar (Pack of 12)', 'MILKYBAR-P12', 'Confectionery', '12-pack', 'White chocolate bars pack', 480.00),
+
+-- Culinary
+('Maggi Coconut Milk Powder 1kg', 'MAGGI-CMP-1KG', 'Culinary', '1kg', 'Premium coconut milk powder in bulk', 1250.00),
+('Maggi Seasoning 200ml (Bottle)', 'MAGGI-SEASON-200', 'Culinary', 'Bottle', 'All-purpose liquid seasoning', 280.00);
 
 -- Insert warehouse stock
 INSERT INTO warehouse_stock (product_id, total_stock, reserved_stock, reorder_point) 
-SELECT id, 5000, 0, 500 FROM products;
+SELECT id, 10000, 0, 1000 FROM products;
 
--- Insert sample distributors (5) (password: password123)
-INSERT INTO users (name, email, password, role, territory, status) VALUES
-('Distributor 1 (Western)', 'dist1@ndrc.lk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'distributor', 'Western Province', 'active'),
-('Distributor 2 (Central)', 'dist2@ndrc.lk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'distributor', 'Central Province', 'active'),
-('Distributor 3 (Southern)', 'dist3@ndrc.lk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'distributor', 'Southern Province', 'active'),
-('Distributor 4 (Northern)', 'dist4@ndrc.lk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'distributor', 'Northern Province', 'active'),
-('Distributor 5 (Eastern)', 'dist5@ndrc.lk', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'distributor', 'Eastern Province', 'active');
+-- Insert sample distributors (No initial seeds as per user request)

@@ -5,7 +5,7 @@ require_once 'includes/functions.php';
 
 // If already logged in, redirect
 if (isset($_SESSION['user_id'])) {
-    header('Location: /');
+    header('Location: ' . BASE_URL);
     exit();
 }
 
@@ -17,7 +17,7 @@ include 'includes/header.php';
         <h2 class="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-nestle-brown underline decoration-nestle-blue decoration-4 underline-offset-8">Sign in to NDRC</h2>
         <p class="mt-2 text-center text-sm text-gray-600">
             Or
-            <a href="/register.php" class="font-semibold leading-6 text-nestle-blue hover:text-nestle-blue/80">create a new account</a>
+            <a href="<?php echo BASE_URL; ?>register.php" class="font-semibold leading-6 text-nestle-blue hover:text-nestle-blue/80">create a new account</a>
         </p>
     </div>
 
@@ -35,7 +35,7 @@ include 'includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <form class="space-y-6" action="/api/auth/login.php" method="POST">
+            <form class="space-y-6" action="<?php echo BASE_URL; ?>api/auth/login.php" method="POST">
                 <div>
                     <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email address</label>
                     <div class="mt-2">
