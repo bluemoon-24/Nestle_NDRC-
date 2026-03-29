@@ -1,30 +1,38 @@
 <?php
 // api/wholesaler/process-order.php
-session_start();
 require_once '../../config/database.php';
-require_once '../../includes/functions.php';
+session_start();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'wholesaler') {
+    die("Unauthorized");
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $order_id = $_POST['order_id'];
-    $action = $_POST['action']; // accept or reject
-    
-    $status = ($action === 'accept') ? 'wholesaler_accepted' : 'rejected';
-    
+    $action = $_POST['action']; // 'accept' or 'reject'
+
     try {
-        $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
-        $stmt->execute([$status, $order_id]);
+        $status = ($action === 'accept') ? 'wholesaler_accepted' : 'rejected';
         
+        $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ? AND wholesaler_id = ?");
+        $stmt->execute([$status, $order_id, $_SESSION['user_id']]);
+
         // Notify retailer
-        $order = $pdo->prepare("SELECT retailer_id, order_number FROM orders WHERE id = ?");
-        $order->execute([$order_id]);
-        $o = $order->fetch();
-        
-        $msg = ($action === 'accept') ? "Your order " . $o['order_number'] . " has been accepted by the wholesaler." : "Your order " . $o['order_number'] . " was rejected.";
-        createNotification($o['retailer_id'], 'order_status', "Order " . ucfirst($action) . "ed", $msg, "/retailer/dashboard.php");
-        
-        header('Location: ' . $_SERVER['HTTP_REFERER']);
+        $order_stmt = $pdo->prepare("SELECT order_number, retailer_id FROM orders WHERE id = ?");
+        $order_stmt->execute([$order_id]);
+        $order = $order_stmt->fetch();
+
+        if ($order) {
+            $title = ($action === 'accept') ? 'Order Accepted' : 'Order Rejected';
+            $msg = ($action === 'accept') ? "Wholesaler has accepted your order #{$order['order_number']}" : "Your order #{$order['order_number']} was rejected.";
+            
+            $notif = $pdo->prepare("INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'order_status', ?, ?)");
+            $notif->execute([$order['retailer_id'], $title, $msg]);
+        }
+
+        header('Location: ' . BASE_URL . 'wholesaler/dashboard.php?success=1');
         exit();
-    } catch (Exception $e) {
-        die("Process failed: " . $e->getMessage());
+    } catch (PDOException $e) {
+        die("Error: " . $e->getMessage());
     }
 }

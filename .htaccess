@@ -1,10 +1,12 @@
-RewriteEngine On
-RewriteBase /Nestle_NDRC-/
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /Nestle_NDRC-/
 
-# Route the root directly to public/index.php
-RewriteRule ^$ public/index.php [L]
+    # 1. Stop if the request already points to public/
+    RewriteCond %{REQUEST_URI} ^/Nestle_NDRC-/public/ [NC]
+    RewriteRule ^ - [L]
 
-# For any other request, if it doesn't exist as a file/folder in root, check public folder
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ public/$1 [L]
+    # 2. Rewrite root/index requests to public/
+    RewriteRule ^$ public/index.php [L]
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

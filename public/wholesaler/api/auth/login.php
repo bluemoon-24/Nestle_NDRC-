@@ -16,8 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_role'] = $user['role'];
-        $_SESSION['wholesaler_id'] = $user['wholesaler_id'] ?? null;
-        $_SESSION['distributor_id'] = $user['distributor_id'] ?? null;
+        $_SESSION['wholesaler_id'] = $user['wholesaler_id'];
+        $_SESSION['distributor_id'] = $user['distributor_id'];
         
         // Role-based redirect
         switch ($user['role']) {

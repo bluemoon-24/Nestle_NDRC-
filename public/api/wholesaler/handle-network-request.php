@@ -1,64 +1,49 @@
 <?php
-require_once '../../includes/auth_check.php';
+// api/wholesaler/handle-network-request.php
 require_once '../../config/database.php';
-require_once '../../includes/functions.php';
+session_start();
 
-checkAuth(['wholesaler']);
+if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'wholesaler') {
+    die("Unauthorized");
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $request_id = $_POST['request_id'] ?? null;
-    $action = $_POST['action'] ?? null; // 'approve' or 'reject'
-    $wholesaler_id = $_SESSION['user_id'];
+    $request_id = $_POST['request_id'];
+    $status = $_POST['status']; // 'accepted' or 'rejected'
 
-    if (!$request_id || !$action) {
-        header('Location: ' . BASE_URL . 'wholesaler/retailers.php?error=Missing params');
-        exit();
-    }
+    try {
+        $pdo->beginTransaction();
 
-    // 1. Fetch request details to verify wholesaler_id
-    $req_stmt = $pdo->prepare("SELECT * FROM network_requests WHERE id = ? AND wholesaler_id = ? AND status = 'pending'");
-    $req_stmt->execute([$request_id, $wholesaler_id]);
-    $request = $req_stmt->fetch();
-
-    if (!$request) {
-        header('Location: ' . BASE_URL . 'wholesaler/retailers.php?error=Request not found');
-        exit();
-    }
-
-    $retailer_id = $request['retailer_id'];
-
-    if ($action === 'approve') {
-        try {
-            $pdo->beginTransaction();
-
-            // Update request status
-            $upd_req = $pdo->prepare("UPDATE network_requests SET status = 'approved' WHERE id = ?");
-            $upd_req->execute([$request_id]);
-
-            // Assign wholesaler to retailer
-            $upd_user = $pdo->prepare("UPDATE users SET wholesaler_id = ? WHERE id = ?");
-            $upd_user->execute([$wholesaler_id, $retailer_id]);
-
-            // Add notification for retailer
-            $notif = $pdo->prepare("INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'system', 'Network Approved', 'Your request to join the wholesaler network has been approved.')");
-            $notif->execute([$retailer_id]);
-
-            $pdo->commit();
-            header('Location: ' . BASE_URL . 'wholesaler/retailers.php?success=Retailer approved');
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            header('Location: ' . BASE_URL . 'wholesaler/retailers.php?error=' . urlencode($e->getMessage()));
+        $stmt = $pdo->prepare("SELECT retailer_id FROM network_requests WHERE id = ? AND wholesaler_id = ?");
+        $stmt->execute([$request_id, $_SESSION['user_id']]);
+        $request = $stmt->fetch();
+        
+        if (!$request) {
+            die("Invalid Request");
         }
-    } elseif ($action === 'reject') {
-        $upd_req = $pdo->prepare("UPDATE network_requests SET status = 'rejected' WHERE id = ?");
-        $upd_req->execute([$request_id]);
 
-        // Add notification for retailer
-        $notif = $pdo->prepare("INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'system', 'Network Request Rejected', 'Your request to join the wholesaler network was rejected.')");
-        $notif->execute([$retailer_id]);
+        // Update request status
+        $update = $pdo->prepare("UPDATE network_requests SET status = ? WHERE id = ?");
+        $update->execute([$status, $request_id]);
 
-        header('Location: ' . BASE_URL . 'wholesaler/retailers.php?success=Request rejected');
+        // If accepted, update retailer's wholesaler_id
+        if ($status === 'accepted') {
+            $update_retailer = $pdo->prepare("UPDATE users SET wholesaler_id = ?, order_direct = 0 WHERE id = ?");
+            $update_retailer->execute([$_SESSION['user_id'], $request['retailer_id']]);
+        }
+
+        // Notify retailer
+        $title = $status === 'accepted' ? 'Network Request Accepted' : 'Network Request Rejected';
+        $message = $status === 'accepted' ? "Wholesaler " . $_SESSION['user_name'] . " has accepted your affiliation request." : "Wholesaler " . $_SESSION['user_name'] . " has declined your request.";
+        
+        $notif = $pdo->prepare("INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'system', ?, ?)");
+        $notif->execute([$request['retailer_id'], $title, $message]);
+
+        $pdo->commit();
+        header('Location: ' . BASE_URL . 'wholesaler/dashboard.php?success=1');
+        exit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        die("Error: " . $e->getMessage());
     }
-} else {
-    header('Location: ' . BASE_URL . 'wholesaler/retailers.php');
 }

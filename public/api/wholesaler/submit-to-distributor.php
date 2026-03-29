@@ -1,26 +1,32 @@
 <?php
 // api/wholesaler/submit-to-distributor.php
-session_start();
 require_once '../../config/database.php';
-require_once '../../includes/functions.php';
+session_start();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'wholesaler') {
+    die("Unauthorized");
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $order_id = $_POST['order_id'];
-    
+
     try {
-        $stmt = $pdo->prepare("UPDATE orders SET status = 'distributor_pending' WHERE id = ?");
-        $stmt->execute([$order_id]);
-        
+        $stmt = $pdo->prepare("UPDATE orders SET status = 'distributor_pending' WHERE id = ? AND wholesaler_id = ?");
+        $stmt->execute([$order_id, $_SESSION['user_id']]);
+
         // Notify distributor
-        $order = $pdo->prepare("SELECT distributor_id, order_number FROM orders WHERE id = ?");
-        $order->execute([$order_id]);
-        $o = $order->fetch();
-        
-        createNotification($o['distributor_id'], 'order_status', 'New Wholesaler Submission', "Wholesaler " . $_SESSION['user_name'] . " submitted order " . $o['order_number'], "/distributor/dashboard.php");
-        
-        header('Location: ' . $_SERVER['HTTP_REFERER']);
+        $order_stmt = $pdo->prepare("SELECT order_number, distributor_id FROM orders WHERE id = ?");
+        $order_stmt->execute([$order_id]);
+        $order = $order_stmt->fetch();
+
+        if ($order) {
+            $notif = $pdo->prepare("INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'order_status', 'New Wholesaler Order', ?)");
+            $notif->execute([$order['distributor_id'], "Wholesaler " . $_SESSION['user_name'] . " has submitted order #{$order['order_number']} for confirmation."]);
+        }
+
+        header('Location: ' . BASE_URL . 'wholesaler/dashboard.php?success=1');
         exit();
-    } catch (Exception $e) {
-        die("Submission failed: " . $e->getMessage());
+    } catch (PDOException $e) {
+        die("Error: " . $e->getMessage());
     }
 }

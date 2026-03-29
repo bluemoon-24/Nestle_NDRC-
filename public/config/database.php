@@ -4,8 +4,16 @@ $dbname = 'ndrc_nestle';
 $username = 'root';
 $password = '';
 
+/* 
+// InfinityFree Production Settings (Use these when hosting online)
+$host = "sqlXXX.infinityfree.com"; 
+$dbname = "if0_41494385_ndrc_nestle"; 
+$username = "if0_41494385"; 
+$password = "ddsDCZhT5fPdc"; 
+*/
+
 // Define Base URL for absolute links
-// If your project is in htdocs/Nestle_NDRC-, then use '/Nestle_NDRC-/'
+// Use '/' for production or '/Nestle_NDRC-/' for local XAMPP
 define('BASE_URL', '/Nestle_NDRC-/');
 
 try {
