@@ -1,11 +1,10 @@
 <?php
 // api/retailer/place-order.php
 require_once '../../config/database.php';
+require_once '../../../app/Utils/helper.php';
 session_start();
 
-if (!isset($_SESSION['user_id'])) {
-    die("Unauthorized");
-}
+authorize(['retailer', 'wholesaler']); // Both can place orders up the chain
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $retailer_id = $_SESSION['user_id'];
@@ -13,6 +12,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $distributor_id = $_POST['distributor_id'];
     $items_post = $_POST['items'] ?? [];
     $order_number = "ORD-" . date('Ymd') . "-" . strtoupper(bin2hex(random_bytes(3)));
+
+    if (empty($distributor_id)) {
+        jsonResponse('error', 'Target distributor must be specified', null, 400);
+    }
 
     try {
         $pdo->beginTransaction();
@@ -37,11 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'price' => $product['price'],
                     'subtotal' => $subtotal
                 ];
+            } else {
+                 throw new Exception("Product ID $product_id not found.");
             }
         }
 
         if (empty($order_items)) {
-            die("No items selected");
+            throw new Exception("No valid items selected for the order.");
         }
 
         // Determine status based on chain
@@ -66,16 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Notify next in line
         $notify_target = $wholesaler_id ? $wholesaler_id : $distributor_id;
         $notif_stmt = $pdo->prepare("INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'order_status', 'New Order Received', ?)");
-        $notif_stmt->execute([$notify_target, "New order $order_number has been placed by " . $_SESSION['user_name']]);
+        $notif_stmt->execute([$notify_target, "New order $order_number has been placed by " . ($_SESSION['user_name'] ?? 'User')]);
 
         $pdo->commit();
-        
-        $redirect = $_SESSION['user_role'] === 'retailer' ? 'retailer/dashboard.php' : 'wholesaler/dashboard.php';
-        header('Location: ' . BASE_URL . $redirect . '?order_success=1');
-        exit();
+        jsonResponse('success', 'Order placed successfully', ['order_number' => $order_number, 'status' => $status]);
 
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        die("Order failed: " . $e->getMessage());
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        jsonResponse('error', $e->getMessage(), null, 400);
     }
 }
